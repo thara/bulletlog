@@ -21,3 +21,11 @@ BULLETLOG
 
 * CCCC
 ```
+
+## License
+
+MIT
+
+## Author
+
+Tomochika Hara
