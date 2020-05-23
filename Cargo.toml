@@ -1,9 +1,8 @@
 [package]
 name = "bulletlog"
 version = "0.1.0"
-authors = ["Tomochika Hara <git@thara.jp>"]
+authors = ["Tomochika Hara <rust@thara.dev>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+clap = { git = "https://github.com/clap-rs/clap", tag = "v3.0.0-beta.1" }
