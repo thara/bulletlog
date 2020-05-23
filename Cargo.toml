@@ -1,0 +1,9 @@
+[package]
+name = "bulletlog"
+version = "0.1.0"
+authors = ["Tomochika Hara <git@thara.jp>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
