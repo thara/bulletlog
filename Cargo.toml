@@ -5,4 +5,5 @@ authors = ["Tomochika Hara <rust@thara.dev>"]
 edition = "2018"
 
 [dependencies]
+chrono = "0.4.11"
 clap = { git = "https://github.com/clap-rs/clap", tag = "v3.0.0-beta.1" }
