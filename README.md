@@ -1,25 +1,27 @@
 # Bullet log
 
-Add an entry to changelog on CLI
+Take a log quickly like bullets.
+
+## Usage
+
+Add an entry to your `BULLETLOG` file on CLI
 
 ```
+$ date +%Y-%m-%d
+2020-05-27
 $ bulletlog add Build my NES emulator
-```
-
-BULLETLOG
-
-```
-2020-05-23
+$ cat ~/BULLETLOG
+2020-05-27
 
 * Build my NES emulator
 
-2020-05-22
+2020-05-24
 
-* AAAA
+* note-cli written in Rust
 
-* BBBB
+* Haskell Scripting
 
-* CCCC
+* Try https://github.com/wellle/tmux-complete.vim
 ```
 
 ## License
