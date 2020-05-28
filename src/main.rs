@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-use std::io::BufReader;
+use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
@@ -69,8 +69,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 write!(file, "## {}\n\n* {}", date_str, note)?;
             } else {
                 //FIXME Remove unwrap
-                let re = Regex::new(r"^## (\d{4}-\d{2}-\d{2})$").unwrap();
-                let cap = re.captures(first_line.unwrap()).unwrap();
+                let date_header_regex = Regex::new(r"^## (\d{4}-\d{2}-\d{2})$").unwrap();
+                let cap = date_header_regex.captures(first_line.unwrap()).unwrap();
 
                 let latest_date = NaiveDate::parse_from_str(&cap[1], "%Y-%m-%d")?;
 
@@ -87,6 +87,34 @@ fn main() -> Result<(), Box<dyn Error>> {
                     fs::rename(&temp_path, &path)?;
                 } else if latest_date == date {
                     // Add an entry
+                    let temp_path = make_temp_file()?;
+                    let temp = File::create(&temp_path)?;
+                    let mut writer = BufWriter::new(&temp);
+                    let _ = writer.write_all(buf.as_bytes()); // first line
+
+                    loop {
+                        let mut buf = String::new();
+                        let len = reader.read_line(&mut buf)?;
+                        if len == 0 {
+                            break;
+                        }
+
+                        let line = buf.lines().next().unwrap();
+
+                        if let Some(cap) = date_header_regex.captures(line) {
+                            let section_date = NaiveDate::parse_from_str(&cap[1], "%Y-%m-%d")?;
+                            if section_date == date.pred() {
+                                let content = format!("* {}\n\n", note);
+                                let _ = writer.write_all(content.as_bytes());
+                            }
+                        }
+
+                        let _ = writer.write_all(buf.as_bytes());
+                    }
+                    writer.flush().unwrap();
+
+                    fs::remove_file(&path)?;
+                    fs::rename(&temp_path, &path)?;
                 } else {
                     // FIXME ATDK
                 }
