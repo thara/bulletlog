@@ -3,7 +3,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::BufReader;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::{fs, io};
 
 use chrono::prelude::*;
@@ -31,6 +31,13 @@ enum SubCommand {
 fn today() -> String {
     let today = Local::today();
     Date::format(&today, "%Y-%m-%d").to_string()
+}
+
+fn make_temp_file() -> Result<PathBuf, std::io::Error> {
+    let temp_path = Temp::new_file()?;
+    let path = temp_path.to_path_buf();
+    temp_path.release();
+    Ok(path)
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -69,12 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 if latest_date < date {
                     // New section
-                    let temp_path = {
-                        let temp_path = Temp::new_file()?;
-                        let path = temp_path.to_path_buf();
-                        temp_path.release();
-                        path
-                    };
+                    let temp_path = make_temp_file()?;
 
                     let mut temp = File::create(&temp_path)?;
                     let mut src = File::open(&path)?;
