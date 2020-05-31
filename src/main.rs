@@ -48,6 +48,14 @@ lazy_static! {
     static ref DATE_HEADER_RE: Regex = Regex::new(r"^## (\d{4}-\d{2}-\d{2})$").unwrap();
 }
 
+fn get_date_from_header(line: &str) -> NaiveDate {
+    let cap = DATE_HEADER_RE
+        .captures(&line)
+        .expect("Illegal header format");
+
+    NaiveDate::parse_from_str(&cap[1], NAIVE_DATE_PATTERN).expect("Parse Error")
+}
+
 fn add_note(path: &Path, note: String, date: Option<String>) -> Result<(), std::io::Error> {
     let date_str = date.unwrap_or_else(|| today());
     //FIXME Remove expect
@@ -65,12 +73,7 @@ fn add_note(path: &Path, note: String, date: Option<String>) -> Result<(), std::
         let mut file = OpenOptions::new().write(true).open(&path)?;
         write!(file, "## {}\n\n* {}", date_str, note)?;
     } else {
-        //FIXME Remove unwrap
-        let cap = DATE_HEADER_RE.captures(first_line.unwrap()).unwrap();
-
-        //FIXME Remove expect
-        let latest_date =
-            NaiveDate::parse_from_str(&cap[1], NAIVE_DATE_PATTERN).expect("Parse Error");
+        let latest_date = get_date_from_header(&first_line.unwrap());
 
         if latest_date < date {
             // New section
