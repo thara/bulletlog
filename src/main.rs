@@ -92,6 +92,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let mut writer = BufWriter::new(&temp);
                     let _ = writer.write_all(buf.as_bytes()); // first line
 
+                    let mut appended = false;
                     loop {
                         let mut buf = String::new();
                         let len = reader.read_line(&mut buf)?;
@@ -101,12 +102,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                         let line = buf.lines().next().unwrap();
 
-                        if let Some(cap) = date_header_regex.captures(line) {
-                            let section_date = NaiveDate::parse_from_str(&cap[1], "%Y-%m-%d")?;
-                            if section_date == date.pred() {
-                                let content = format!("* {}\n\n", note);
-                                let _ = writer.write_all(content.as_bytes());
-                            }
+                        if !appended && date_header_regex.is_match(line) {
+                            let content = format!("* {}\n\n", note);
+                            let _ = writer.write_all(content.as_bytes());
+                            appended = true;
                         }
 
                         let _ = writer.write_all(buf.as_bytes());
