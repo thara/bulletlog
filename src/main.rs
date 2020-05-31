@@ -28,9 +28,11 @@ enum SubCommand {
     },
 }
 
+const NAIVE_DATE_PATTERN: &str = "%Y-%m-%d";
+
 fn today() -> String {
     let today = Local::today();
-    Date::format(&today, "%Y-%m-%d").to_string()
+    Date::format(&today, NAIVE_DATE_PATTERN).to_string()
 }
 
 fn make_temp_file() -> Result<PathBuf, std::io::Error> {
@@ -43,7 +45,7 @@ fn make_temp_file() -> Result<PathBuf, std::io::Error> {
 fn add_note(path: &Path, note: String, date: Option<String>) -> Result<(), std::io::Error> {
     let date_str = date.unwrap_or_else(|| today());
     //FIXME Remove expect
-    let date = NaiveDate::parse_from_str(&date_str, "%Y-%m-%d").expect("Parse Error");
+    let date = NaiveDate::parse_from_str(&date_str, NAIVE_DATE_PATTERN).expect("Parse Error");
 
     let file = File::open(&path)?;
     let mut reader = BufReader::new(file);
@@ -62,7 +64,8 @@ fn add_note(path: &Path, note: String, date: Option<String>) -> Result<(), std::
         let cap = date_header_regex.captures(first_line.unwrap()).unwrap();
 
         //FIXME Remove expect
-        let latest_date = NaiveDate::parse_from_str(&cap[1], "%Y-%m-%d").expect("Parse Error");
+        let latest_date =
+            NaiveDate::parse_from_str(&cap[1], NAIVE_DATE_PATTERN).expect("Parse Error");
 
         if latest_date < date {
             // New section
