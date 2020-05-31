@@ -6,6 +6,8 @@ use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
+#[macro_use]
+extern crate lazy_static;
 use chrono::prelude::*;
 use clap::Clap;
 use mktemp::Temp;
@@ -42,6 +44,10 @@ fn make_temp_file() -> Result<PathBuf, std::io::Error> {
     Ok(path)
 }
 
+lazy_static! {
+    static ref DATE_HEADER_RE: Regex = Regex::new(r"^## (\d{4}-\d{2}-\d{2})$").unwrap();
+}
+
 fn add_note(path: &Path, note: String, date: Option<String>) -> Result<(), std::io::Error> {
     let date_str = date.unwrap_or_else(|| today());
     //FIXME Remove expect
@@ -60,8 +66,7 @@ fn add_note(path: &Path, note: String, date: Option<String>) -> Result<(), std::
         write!(file, "## {}\n\n* {}", date_str, note)?;
     } else {
         //FIXME Remove unwrap
-        let date_header_regex = Regex::new(r"^## (\d{4}-\d{2}-\d{2})$").unwrap();
-        let cap = date_header_regex.captures(first_line.unwrap()).unwrap();
+        let cap = DATE_HEADER_RE.captures(first_line.unwrap()).unwrap();
 
         //FIXME Remove expect
         let latest_date =
@@ -95,7 +100,7 @@ fn add_note(path: &Path, note: String, date: Option<String>) -> Result<(), std::
 
                 let line = buf.lines().next().unwrap();
 
-                if !appended && date_header_regex.is_match(line) {
+                if !appended && DATE_HEADER_RE.is_match(line) {
                     let content = format!("* {}\n\n", note);
                     let _ = writer.write_all(content.as_bytes());
                     appended = true;
