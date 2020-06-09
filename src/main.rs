@@ -23,8 +23,10 @@ struct Opts {
 
 #[derive(Clap)]
 enum SubCommand {
-    #[clap(name = "add", alias = "a", about = "Add an entry")]
-    Add { note: String },
+    #[clap(name = "add", aliases = &["a", "note", "n"], about = "Add an note")]
+    Note { note: String },
+    #[clap(name = "task", alias = "t", about = "Add an task")]
+    Task { note: String },
 }
 
 const NAIVE_DATE_PATTERN: &str = "%Y-%m-%d";
@@ -48,7 +50,7 @@ fn get_date_from_header(line: &str) -> NaiveDate {
     NaiveDate::parse_from_str(&cap[1], NAIVE_DATE_PATTERN).expect("Parse Error")
 }
 
-fn add_note(path: &Path, note: String) -> Result<(), Box<dyn Error>> {
+fn add_bullet(path: &Path, mark: &str, note: &str) -> Result<(), Box<dyn Error>> {
     let today = Local::today();
     let naive_today = today.naive_local();
     let naive_today_str = Date::format(&today, NAIVE_DATE_PATTERN).to_string();
@@ -63,7 +65,7 @@ fn add_note(path: &Path, note: String) -> Result<(), Box<dyn Error>> {
     if first_line.is_none() {
         // new file
         let mut file = OpenOptions::new().write(true).open(&path)?;
-        write!(file, "## {}\n\n* {}", naive_today_str, note)?;
+        write!(file, "## {}\n\n{} {}", naive_today_str, mark, note)?;
     } else {
         let latest_date = get_date_from_header(&first_line.unwrap());
 
@@ -73,7 +75,7 @@ fn add_note(path: &Path, note: String) -> Result<(), Box<dyn Error>> {
 
             let mut temp = File::create(&temp_path)?;
             let mut src = File::open(&path)?;
-            write!(temp, "## {}\n\n* {}\n\n", naive_today_str, note)?;
+            write!(temp, "## {}\n\n{} {}\n\n", naive_today_str, mark, note)?;
 
             io::copy(&mut src, &mut temp)?;
             fs::remove_file(&path)?;
@@ -96,7 +98,7 @@ fn add_note(path: &Path, note: String) -> Result<(), Box<dyn Error>> {
                 let line = buf.lines().next().unwrap();
 
                 if !appended && DATE_HEADER_RE.is_match(line) {
-                    let content = format!("* {}\n\n", note);
+                    let content = format!("{} {}\n\n", mark, note);
                     let _ = writer.write_all(content.as_bytes());
                     appended = true;
                 }
@@ -137,7 +139,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     match opts.subcmd {
-        SubCommand::Add { note } => add_note(path, note)?,
+        SubCommand::Note { note } => add_bullet(path, "*", &note)?,
+        SubCommand::Task { note } => add_bullet(path, "-", &note)?,
     }
 
     Ok(())
