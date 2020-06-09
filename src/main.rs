@@ -27,6 +27,11 @@ enum SubCommand {
     Note { note: String },
     #[clap(name = "task", alias = "t", about = "Add an task")]
     Task { note: String },
+
+    #[clap(name = "notes", alias = "ns", about = "List all notes")]
+    ListNotes {},
+    #[clap(name = "tasks", alias = "ts", about = "List all tasks")]
+    ListTasks {},
 }
 
 const NAIVE_DATE_PATTERN: &str = "%Y-%m-%d";
@@ -116,6 +121,28 @@ fn add_bullet(path: &Path, mark: &str, note: &str) -> Result<(), Box<dyn Error>>
     Ok(())
 }
 
+fn list_bullets(path: &Path, mark: &str) -> Result<(), Box<dyn Error>> {
+    let file = File::open(&path)?;
+    let mut reader = BufReader::new(file);
+
+    let out = io::stdout();
+    let mut w = BufWriter::new(out.lock());
+
+    loop {
+        let mut buf = String::new();
+        let len = reader.read_line(&mut buf)?;
+        if len == 0 {
+            break;
+        }
+
+        if buf.starts_with(mark) {
+            write!(w, "{}", buf).unwrap();
+        }
+    }
+
+    Ok(())
+}
+
 #[derive(Debug, Clone)]
 struct UnsupportedError;
 
@@ -141,6 +168,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     match opts.subcmd {
         SubCommand::Note { note } => add_bullet(path, "*", &note)?,
         SubCommand::Task { note } => add_bullet(path, "-", &note)?,
+        SubCommand::ListNotes {} => list_bullets(path, "*")?,
+        SubCommand::ListTasks {} => list_bullets(path, "-")?,
     }
 
     Ok(())
