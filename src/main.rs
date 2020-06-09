@@ -121,12 +121,14 @@ fn add_bullet(path: &Path, mark: &str, note: &str) -> Result<(), Box<dyn Error>>
     Ok(())
 }
 
-fn list_bullets(path: &Path, mark: &str) -> Result<(), Box<dyn Error>> {
+fn list_bullets(path: &Path, mark: &str, line_numbering: bool) -> Result<(), Box<dyn Error>> {
     let file = File::open(&path)?;
     let mut reader = BufReader::new(file);
 
     let out = io::stdout();
     let mut w = BufWriter::new(out.lock());
+
+    let mut line_number = 0u64;
 
     loop {
         let mut buf = String::new();
@@ -136,7 +138,13 @@ fn list_bullets(path: &Path, mark: &str) -> Result<(), Box<dyn Error>> {
         }
 
         if buf.starts_with(mark) {
-            write!(w, "{}", buf).unwrap();
+            if line_numbering {
+                let (_, note) = buf.split_at(2);
+                write!(w, "{}: {}", line_number, note).unwrap();
+            } else {
+                write!(w, "{}", buf).unwrap();
+            }
+            line_number = line_number.wrapping_add(1);
         }
     }
 
@@ -168,8 +176,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     match opts.subcmd {
         SubCommand::Note { note } => add_bullet(path, "*", &note)?,
         SubCommand::Task { note } => add_bullet(path, "-", &note)?,
-        SubCommand::ListNotes {} => list_bullets(path, "*")?,
-        SubCommand::ListTasks {} => list_bullets(path, "-")?,
+        SubCommand::ListNotes {} => list_bullets(path, "*", false)?,
+        SubCommand::ListTasks {} => list_bullets(path, "-", true)?,
     }
 
     Ok(())
