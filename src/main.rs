@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
@@ -56,7 +57,7 @@ fn get_date_from_header(line: &str) -> NaiveDate {
     NaiveDate::parse_from_str(&cap[1], NAIVE_DATE_PATTERN).expect("Parse Error")
 }
 
-fn add_note(path: &Path, note: String, date: Option<String>) -> Result<(), std::io::Error> {
+fn add_note(path: &Path, note: String, date: Option<String>) -> Result<(), Box<dyn Error>> {
     let date_str = date.unwrap_or_else(|| today());
     //FIXME Remove expect
     let date = NaiveDate::parse_from_str(&date_str, NAIVE_DATE_PATTERN).expect("Parse Error");
@@ -116,11 +117,22 @@ fn add_note(path: &Path, note: String, date: Option<String>) -> Result<(), std::
             fs::remove_file(&path)?;
             fs::rename(&temp_path, &path)?;
         } else {
-            // FIXME ATDK
+            return Err(Box::new(UnsupportedError {}));
         }
     }
     Ok(())
 }
+
+#[derive(Debug, Clone)]
+struct UnsupportedError;
+
+impl fmt::Display for UnsupportedError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Unsupported")
+    }
+}
+
+impl std::error::Error for UnsupportedError {}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let opts = Opts::parse();
