@@ -1,3 +1,4 @@
+use std::env;
 use std::error::Error;
 use std::fmt;
 use std::fs::File;
@@ -73,7 +74,7 @@ fn add_bullet(path: &Path, mark: &str, note: &str) -> Result<(), Box<dyn Error>>
     if first_line.is_none() {
         // new file
         let mut file = OpenOptions::new().write(true).open(&path)?;
-        write!(file, "## {}\n\n{} {}", naive_today_str, mark, note)?;
+        write!(file, "## {}\n\n{} {}\n\n", naive_today_str, mark, note)?;
     } else {
         let latest_date = get_date_from_header(&first_line.unwrap());
 
@@ -113,6 +114,11 @@ fn add_bullet(path: &Path, mark: &str, note: &str) -> Result<(), Box<dyn Error>>
 
                 let _ = writer.write_all(buf.as_bytes());
             }
+            if !appended {
+                let content = format!("{} {}\n\n", mark, note);
+                let _ = writer.write_all(content.as_bytes());
+            }
+
             writer.flush().unwrap();
 
             fs::remove_file(&path)?;
@@ -204,8 +210,9 @@ impl std::error::Error for UnsupportedError {}
 fn main() -> Result<(), Box<dyn Error>> {
     let opts = Opts::parse();
 
-    // FIXME load config file
-    let path = Path::new(".BULLETLOG");
+    let pathname = env::var("BULLETLOG_FILE").unwrap_or(".BULLETLOG".to_string());
+
+    let path = Path::new(&pathname);
     if path.exists() {
         File::open(&path)?;
     } else {
