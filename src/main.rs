@@ -32,6 +32,9 @@ enum SubCommand {
     ListNotes {},
     #[clap(name = "tasks", alias = "ts", about = "List all tasks")]
     ListTasks {},
+
+    #[clap(name = "comp", alias = "c", about = "Complete a task")]
+    CompleteTask { task_number: u64 },
 }
 
 const NAIVE_DATE_PATTERN: &str = "%Y-%m-%d";
@@ -151,6 +154,42 @@ fn list_bullets(path: &Path, mark: &str, line_numbering: bool) -> Result<(), Box
     Ok(())
 }
 
+fn complete_task(path: &Path, mark: &str, task_number: u64) -> Result<(), Box<dyn Error>> {
+    let file = File::open(&path)?;
+    let mut reader = BufReader::new(file);
+
+    let mut n = 0u64;
+
+    let temp_path = make_temp_file()?;
+    let temp = File::create(&temp_path)?;
+    let mut writer = BufWriter::new(&temp);
+
+    loop {
+        let mut buf = String::new();
+        let len = reader.read_line(&mut buf)?;
+        if len == 0 {
+            break;
+        }
+
+        if buf.starts_with(mark) {
+            if n == task_number {
+                let (_, note) = buf.split_at(2);
+                buf = format!("x {}", note);
+            }
+            n = n.wrapping_add(1);
+        }
+
+        let _ = writer.write_all(buf.as_bytes());
+    }
+
+    writer.flush().unwrap();
+
+    fs::remove_file(&path)?;
+    fs::rename(&temp_path, &path)?;
+
+    Ok(())
+}
+
 #[derive(Debug, Clone)]
 struct UnsupportedError;
 
@@ -178,6 +217,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         SubCommand::Task { note } => add_bullet(path, "-", &note)?,
         SubCommand::ListNotes {} => list_bullets(path, "*", false)?,
         SubCommand::ListTasks {} => list_bullets(path, "-", true)?,
+        SubCommand::CompleteTask { task_number } => complete_task(path, "-", task_number)?,
     }
 
     Ok(())
