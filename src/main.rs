@@ -59,10 +59,13 @@ fn get_date_from_header(line: &str) -> NaiveDate {
     NaiveDate::parse_from_str(&cap[1], NAIVE_DATE_PATTERN).expect("Parse Error")
 }
 
-fn add_bullet(path: &Path, mark: &str, note: &str) -> Result<(), Box<dyn Error>> {
-    let today = Local::today();
-    let naive_today = today.naive_local();
-    let naive_today_str = Date::format(&today, NAIVE_DATE_PATTERN).to_string();
+fn add_bullet(
+    path: &Path,
+    target_date: NaiveDate,
+    mark: &str,
+    note: &str,
+) -> Result<(), Box<dyn Error>> {
+    let target_date_str = target_date.format(NAIVE_DATE_PATTERN).to_string();
 
     let file = File::open(&path)?;
     let mut reader = BufReader::new(file);
@@ -74,22 +77,22 @@ fn add_bullet(path: &Path, mark: &str, note: &str) -> Result<(), Box<dyn Error>>
     if first_line.is_none() {
         // new file
         let mut file = OpenOptions::new().write(true).open(&path)?;
-        write!(file, "## {}\n\n{} {}\n\n", naive_today_str, mark, note)?;
+        write!(file, "## {}\n\n{} {}\n\n", target_date_str, mark, note)?;
     } else {
         let latest_date = get_date_from_header(&first_line.unwrap());
 
-        if latest_date < naive_today {
+        if latest_date < target_date {
             // New section
             let temp_path = make_temp_file()?;
 
             let mut temp = File::create(&temp_path)?;
             let mut src = File::open(&path)?;
-            write!(temp, "## {}\n\n{} {}\n\n", naive_today_str, mark, note)?;
+            write!(temp, "## {}\n\n{} {}\n\n", target_date_str, mark, note)?;
 
             io::copy(&mut src, &mut temp)?;
             fs::remove_file(&path)?;
             fs::rename(&temp_path, &path)?;
-        } else if latest_date == naive_today {
+        } else if latest_date == target_date {
             // Add an entry
             let temp_path = make_temp_file()?;
             let temp = File::create(&temp_path)?;
@@ -219,9 +222,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         File::create(&path)?;
     }
 
+    let date = env::var("BULLETLOG_DATE")
+        .map(|v| NaiveDate::parse_from_str(&v, NAIVE_DATE_PATTERN).expect("Parse Error"))
+        .unwrap_or_else(|_| Local::today().naive_local());
+
     match opts.subcmd {
-        SubCommand::Note { note } => add_bullet(path, "*", &note)?,
-        SubCommand::Task { note } => add_bullet(path, "-", &note)?,
+        SubCommand::Note { note } => add_bullet(path, date, "*", &note)?,
+        SubCommand::Task { note } => add_bullet(path, date, "-", &note)?,
         SubCommand::ListNotes {} => list_bullets(path, "*", false)?,
         SubCommand::ListTasks {} => list_bullets(path, "-", true)?,
         SubCommand::CompleteTask { task_number } => complete_task(path, "-", task_number)?,
